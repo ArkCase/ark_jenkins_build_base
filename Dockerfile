@@ -159,7 +159,6 @@ RUN apt-get update && \
         rsync \
         sshpass \
         subversion \
-        sudo \
         unzip \
         vim \
         wget \
@@ -231,18 +230,6 @@ COPY --chown=root:root conf.d /conf.d
 RUN groupadd --system "build"
 RUN groupadd --gid "${APP_GID}" "${APP_GROUP}"
 RUN useradd --uid "${APP_UID}" --gid "${APP_GID}" --groups "build,docker" -m --home-dir "/home/${APP_USER}" "${APP_USER}"
-
-#
-# Add the sudo configuration for the build group
-#
-COPY --chown=root:root 00-build /etc/sudoers.d
-RUN chmod 0640 /etc/sudoers.d/00-build
-
-#
-# Add the SSL trusts
-#
-COPY --chown=root:root ssl-trusts/ /usr/local/share/ca-certificates/
-RUN /usr/sbin/update-ca-certificates
 
 #
 # Now do the configurations for the actual user
