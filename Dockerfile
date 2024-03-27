@@ -233,12 +233,6 @@ RUN groupadd --gid "${APP_GID}" "${APP_GROUP}"
 RUN useradd --uid "${APP_UID}" --gid "${APP_GID}" --groups "build,docker" -m --home-dir "/home/${APP_USER}" "${APP_USER}"
 
 #
-# Add the configure and entrypoint scripts
-#
-COPY --chown=root:root configure entrypoint /
-RUN chmod 0755 /configure /entrypoint
-
-#
 # Add the sudo configuration for the build group
 #
 COPY --chown=root:root 00-build /etc/sudoers.d
@@ -269,4 +263,4 @@ VOLUME      [ "/cache" ]
 VOLUME      [ "/home/${APP_USER}" ]
 
 WORKDIR     "/home/${APP_USER}"
-ENTRYPOINT  [ "/entrypoint" ]
+ENTRYPOINT  [ "/usr/bin/bash", "-i" ]
