@@ -1,0 +1,109 @@
+#!/bin/bash
+SCRIPT="$(readlink -f "${BASH_ARGV0:-${BASH_SOURCE:-${0}}}")"
+set -euo pipefail
+
+timestamp()
+{
+	/usr/bin/date -Ins -u
+}
+
+say()
+{
+	echo -e "$(timestamp): ${@}"
+}
+
+doing()
+{
+	say "👉 ${@}"
+}
+
+ok()
+{
+	say "✅ ${@}"
+}
+
+warn()
+{
+	say "⚠️ ${@}"
+}
+
+err() {
+	say "❌ ${@}" 1>&2
+}
+
+fail() {
+	err "${@}"
+	exit ${EXIT_CODE:-1}
+}
+
+list_artifacts()
+{
+	local SRC="${1}"
+	cat "${SRC}" | sed -e '/^\s*#/d' -e '/^\s*$/d'
+}
+
+select_latest()
+{
+	# Find the version that's the latest, and use it
+	local LATEST="$(echo -n "${@}" | tr ' ' '\n' | sort -V -r | head -1 | tr -d '\n')"
+	if [ -n "${LATEST}" ] ; then
+		doing "Setting the latest version to point to [${LATEST}]"
+		if ( cd "${TOOL}" && ln -sv "${LATEST}" "latest" ) ; then
+			ok "Latest marker set"
+		else
+			warn "Failed to set the latest marker to point to [${LATEST}]"
+		fi
+	else
+		warn "No latest version selected among [${VERSIONS[@]}]"
+	fi
+	return 0
+}
+
+usage()
+{
+	echo -e "usage: ${BASH_ARGV0:-${BASH_SOURCE:-${0}}} [tool-dir-1 tool-dir-2 tool-dir-3 ... tool-dir-N]" 1>&2
+	exit 1
+}
+
+[ ${#} -gt 0 ] || usage
+
+doing "Installing ${#} tools..."
+FAILED=()
+for TOOL in "${@}" ; do
+	[ -e "${TOOL}" ] && [ -d "${TOOL}" ] && [ -r "${TOOL}" ] && [ -x "${TOOL}" ] || {
+		warn "The path [${TOOL}] does not exist or is not an accessible directory, skipping!"
+		continue
+	}
+
+	ARTIFACTS="${TOOL}/.artifacts"
+	[ -e "${ARTIFACTS}" ] && [ -f "${ARTIFACTS}" ] && [ -r "${ARTIFACTS}" ] || {
+		warn "The path [${TOOL}] does not have an artifacts manifest, skipping!"
+		continue
+	}
+	
+	INSTALLER="${TOOL}/.install"
+	[ -e "${INSTALLER}" ] && [ -f "${INSTALLER}" ] && [ -x "${INSTALLER}" ] || {
+		warn "The path [${TOOL}] does not have an installer script, skipping!"
+		continue
+	}
+
+	TOOL="$(readlink -f "${TOOL}")"
+	ARTIFACTS="$(readlink -f "${ARTIFACTS}")"
+
+	VERSIONS=()
+	doing "Installing the tool from [${TOOL}]..."
+	while read VERSION ARTIFACT ; do
+		doing "Processing version ${VERSION} from [${ARTIFACT}]..."
+		if ( cd "${TOOL}" && ./.install "${VERSION}" "${ARTIFACT}" ) ; then
+			VERSIONS+=("${VERSION}")
+			ok "Installation complete!"
+		else
+			err "Installation failed!"
+			FAILED+=("${TOOL}@${VERSION}")
+		fi
+	done < <(list_artifacts "${ARTIFACTS}")
+	select_latest "${VERSIONS[@]}"
+done
+
+[ ${#FAILED[@]} -eq 0 ] || fail "The following tool versions did not install properly: ${FAILED[@]}"
+exit 0

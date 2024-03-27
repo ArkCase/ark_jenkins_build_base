@@ -1,0 +1,24 @@
+#!/bin/bash
+
+DEBUG="false"
+[ -e "/conf.d/.debug" ] && DEBUG="true"
+
+case "${DEBUG,,}" in
+	true | t | yes | y | enable | enabled | en | on )
+		DEBUG="true"
+		echo "CURRENT USER = $(id -a)"
+		echo "***************************"
+		echo "**** BEGIN ENVIRONMENT ****"
+		echo "***************************"
+		env
+		echo "***************************"
+		echo "***** END ENVIRONMENT *****"
+		echo "***************************"
+		;;
+
+	* )	DEBUG="false" ;;
+esac
+export DEBUG
+
+# Just so we don't return a non-0 value
+true

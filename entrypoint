@@ -1,0 +1,11 @@
+#!/bin/bash
+
+if [ ${#} -lt 1 ] ; then
+	echo -e "Running in interactive mode since no command was given to execute"
+	ARGS=(/usr/bin/bash -i)
+else
+	ARGS=("${@}")
+fi
+
+echo -e "Executing the command [${ARGS[@]}]"
+exec /configure "${ARGS[@]}"

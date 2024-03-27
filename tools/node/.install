@@ -1,0 +1,18 @@
+#!/bin/bash
+set -euo pipefail
+
+VERSION="${1}"
+ARTIFACT="${2}"
+
+mkdir -p "${VERSION}"
+curl -fsSL "${ARTIFACT}" | tar --strip-components=1 -C "${VERSION}" -xJvf -
+
+P="${VERSION}"
+N=""
+while true ; do
+	N="${P%.*}"
+	[ "${P}" == "${N}" ] && break
+
+	ln -sv "${P}" "${N}"
+	P="${N}"
+done

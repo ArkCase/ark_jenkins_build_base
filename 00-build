@@ -1,0 +1,2 @@
+# Allow members of group build to execute any command without authentication
+%build	ALL=(ALL:ALL) NOPASSWD:ALL
