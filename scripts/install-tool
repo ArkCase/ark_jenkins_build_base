@@ -39,7 +39,7 @@ fail() {
 list_artifacts()
 {
 	local SRC="${1}"
-	cat "${SRC}" | sed -e '/^\s*#/d' -e '/^\s*$/d'
+	cat "${SRC}" | sed -e '/^\s*#/d' -e '/^\s*$/d' | sort -V -k 1
 }
 
 select_latest()
