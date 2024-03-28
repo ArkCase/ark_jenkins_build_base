@@ -4,16 +4,36 @@ set -euo pipefail
 VERSION="${1}"
 ARTIFACT="${2}"
 
+#
+# Download and install the base artifact
+#
 mkdir -p "${VERSION}"
 curl -fsSL "${ARTIFACT}" | tar --strip-components=1 -C "${VERSION}" -xzvf -
 
+#
+# Remove the source bundle, b/c it's useless
+#
 find "${VERSION}" -type f -name src.zip -delete
 
+#
+# Link the OS's cacerts trusts to the JVMs
+#
+CACERTS="$(find "${VERSION}" -type f -name cacerts)"
+OS_CACERTS="/etc/ssl/certs/java/cacerts"
+mv -vf "${CACERTS}" "${CACERTS}.orig"
+ln -vs "${OS_CACERTS}" "${CACERTS}"
+
+#
+# Create the links for the remaining versions
+#
 P="${VERSION}"
 N=""
 while true ; do
 	N="${P%.*}"
 	[ "${P}" == "${N}" ] && break
+
+	# Remove competing links
+	[ -h "${N}" ] && rm -f "${N}"
 
 	ln -sv "${P}" "${N}"
 	P="${N}"
