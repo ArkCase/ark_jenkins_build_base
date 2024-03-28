@@ -5,7 +5,7 @@ FROM ubuntu:latest
 #
 ARG ARCH="amd64"
 ARG OS="linux"
-ARG VER="1.0.0"
+ARG VER="1.0.1"
 ARG PKG="jenkins-build-base"
 ARG APP_USER="jenkins"
 ARG APP_UID="1000"
@@ -48,7 +48,7 @@ LABEL ORG="Armedia LLC"
 LABEL MAINTAINER="Armedia Devops Team <devops@armedia.com>"
 LABEL APP="Jenkins Build Base Image"
 LABEL VERSION="${VER}"
-LABEL IMAGE_SOURCE="https://github.com/ArkCase/ark_jenkins_build"
+LABEL IMAGE_SOURCE="https://github.com/ArkCase/ark_jenkins_build_base"
 
 #
 # Base environment variables
