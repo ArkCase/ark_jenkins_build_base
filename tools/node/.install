@@ -4,14 +4,23 @@ set -euo pipefail
 VERSION="${1}"
 ARTIFACT="${2}"
 
+#
+# Download and install the base artifact
+#
 mkdir -p "${VERSION}"
 curl -fsSL "${ARTIFACT}" | tar --strip-components=1 -C "${VERSION}" -xJvf -
 
+#
+# Create the links for the remaining versions
+#
 P="${VERSION}"
 N=""
 while true ; do
 	N="${P%.*}"
 	[ "${P}" == "${N}" ] && break
+
+	# Remove competing links
+	[ -h "${N}" ] && rm -f "${N}"
 
 	ln -sv "${P}" "${N}"
 	P="${N}"
