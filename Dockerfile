@@ -5,7 +5,7 @@ FROM ubuntu:latest
 #
 ARG ARCH="amd64"
 ARG OS="linux"
-ARG VER="1.0.3"
+ARG VER="1.0.4"
 ARG PKG="jenkins-build-base"
 ARG APP_USER="jenkins"
 ARG APP_UID="1000"
@@ -20,7 +20,7 @@ ARG K8S_VER="1.28"
 ARG K8S_KEYRING="https://pkgs.k8s.io/core:/stable:/v${K8S_VER}/deb/Release.key"
 ARG K8S_PACKAGE_REPO="https://pkgs.k8s.io/core:/stable:/v${K8S_VER}/deb/"
 
-ARG HELM_VER="3.12.3"
+ARG HELM_VER="3.14.4"
 ARG HELM_SRC="https://get.helm.sh/helm-v${HELM_VER}-linux-amd64.tar.gz"
 
 ARG GITHUB_KEYRING="https://cli.github.com/packages/githubcli-archive-keyring.gpg"
