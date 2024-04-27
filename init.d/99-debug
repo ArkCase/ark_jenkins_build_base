@@ -1,11 +1,12 @@
 #!/bin/bash
 
-DEBUG="false"
-[ -e "/conf.d/.debug" ] && DEBUG="true"
+[ -v DEBUG ] || DEBUG=""
+[ -n "${DEBUG}" ] || DEBUG="false"
+
+[ -e "${CONF_DIR}/.debug" ] && DEBUG="true"
 
 case "${DEBUG,,}" in
 	true | t | yes | y | enable | enabled | en | on )
-		DEBUG="true"
 		echo "CURRENT USER = $(id -a)"
 		echo "***************************"
 		echo "**** BEGIN ENVIRONMENT ****"
@@ -14,6 +15,7 @@ case "${DEBUG,,}" in
 		echo "***************************"
 		echo "***** END ENVIRONMENT *****"
 		echo "***************************"
+		DEBUG="true"
 		;;
 
 	* )	DEBUG="false" ;;

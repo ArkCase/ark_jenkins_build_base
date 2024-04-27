@@ -5,7 +5,7 @@ FROM ubuntu:latest
 #
 ARG ARCH="amd64"
 ARG OS="linux"
-ARG VER="1.1.0"
+ARG VER="1.2.0"
 ARG PKG="jenkins-build-base"
 ARG APP_USER="jenkins"
 ARG APP_UID="1000"
@@ -249,7 +249,6 @@ RUN /usr/bin/git config --global credential.helper cache && \
 # Final parameters
 #
 VOLUME      [ "/init.d" ]
-VOLUME      [ "/cache" ]
 VOLUME      [ "/home/${APP_USER}" ]
 
 WORKDIR     "/home/${APP_USER}"

@@ -10,7 +10,7 @@ export NX_REJECT_UNKNOWN_LOCAL_CACHE=0
 # Make sure the NodeJS cache is properly configured
 #
 [ -v NODE_CACHE ] || NODE_CACHE=""
-[ -n "${NODE_CACHE}" ] || NODE_CACHE="/cache/node"
+[ -n "${NODE_CACHE}" ] || NODE_CACHE="${CACHE_DIR}/node"
 export NODE_CACHE
 
 npm config delete prefix 
