@@ -225,7 +225,7 @@ RUN G="$(getent group "${APP_GROUP}" | cut -d: -f1)" && \
     if [ -n "${G}" ] ; then \
         groupmod -n "${APP_GROUP}" "${G}" ; \
     else \
-        groupadd -u "${APP_UID}" "${APP_GROUP}" ; \
+        groupadd -g "${APP_UID}" "${APP_GROUP}" ; \
     fi
 RUN if U="$(id -nu "${APP_UID}")" ; then \
         usermod -c "Jenkins Build User" -m -d "/home/${APP_USER}" -g "${APP_GID}" -G "docker" -s "/bin/bash" -a -l "${APP_USER}" "${U}" ; \
