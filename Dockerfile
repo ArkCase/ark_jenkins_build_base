@@ -220,8 +220,7 @@ COPY --chown=root:root conf.d /conf.d
 #
 # Create the user and their home
 #
-RUN groupadd --gid "${APP_GID}" "${APP_GROUP}" && \
-    useradd --uid "${APP_UID}" --gid "${APP_GID}" --groups "docker" -m --home-dir "/home/${APP_USER}" "${APP_USER}"
+RUN useradd --uid "${APP_UID}" --gid "${APP_GID}" --groups "docker" -m --home-dir "/home/${APP_USER}" "${APP_USER}"
 
 #
 # Now do the configurations for the actual user
