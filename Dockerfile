@@ -5,12 +5,12 @@ FROM ubuntu:latest
 #
 ARG ARCH="amd64"
 ARG OS="linux"
-ARG VER="1.0.4"
+ARG VER="1.1.0"
 ARG PKG="jenkins-build-base"
 ARG APP_USER="jenkins"
 ARG APP_UID="1000"
-ARG APP_GROUP="builder"
-ARG APP_GID="1000"
+ARG APP_GROUP="${APP_USER}"
+ARG APP_GID="${APP_UID}"
 
 ARG DOCKER_KEYRING="https://download.docker.com/linux/ubuntu/gpg"
 ARG DOCKER_DEB_DISTRO="jammy"
@@ -227,9 +227,8 @@ COPY --chown=root:root conf.d /conf.d
 #
 # Create the user and their home
 #
-RUN groupadd --system "build"
-RUN groupadd --gid "${APP_GID}" "${APP_GROUP}"
-RUN useradd --uid "${APP_UID}" --gid "${APP_GID}" --groups "build,docker" -m --home-dir "/home/${APP_USER}" "${APP_USER}"
+RUN groupadd --gid "${APP_GID}" "${APP_GROUP}" && \
+    useradd --uid "${APP_UID}" --gid "${APP_GID}" --groups "docker" -m --home-dir "/home/${APP_USER}" "${APP_USER}"
 
 #
 # Now do the configurations for the actual user
