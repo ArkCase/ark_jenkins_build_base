@@ -218,9 +218,20 @@ COPY --chown=root:root init.d /init.d
 COPY --chown=root:root conf.d /conf.d
 
 #
-# Create the user and their home
+# Create the user and their home, and their group, commandeer any
+# existing user just in case
 #
-RUN useradd --uid "${APP_UID}" --gid "${APP_GID}" --groups "docker" -m --home-dir "/home/${APP_USER}" "${APP_USER}"
+RUN G="$(getent group "${APP_GROUP}" | cut -d: -f1)" && \
+    if [ -n "${G}" ] ; then \
+        groupmod -n "${APP_GROUP}" "${G}" ; \
+    else \
+        groupadd -u "${APP_UID}" "${APP_GROUP}" ; \
+    fi
+RUN if U="$(id -nu "${APP_UID}")" ; then \
+        usermod -c "Jenkins Build User" -m -d "/home/${APP_USER}" -g "${APP_GID}" -G "docker" -s "/bin/bash" -a -l "${APP_USER}" "${U}" ; \
+    else \
+        useradd -c "Jenkins Build User" -m -d "/home/${APP_USER}" -g "${APP_GID}" -G "docker" -s "/bin/bash" -N -u "${APP_UID}" "${APP_USER}" ; \
+    fi
 
 #
 # Now do the configurations for the actual user
