@@ -221,7 +221,7 @@ COPY --chown=root:root conf.d /conf.d
 # Create the user and their home, and their group, commandeer any
 # existing user just in case
 #
-RUN G="$(getent group "${APP_GROUP}" | cut -d: -f1)" && \
+RUN G="$(getent group "${APP_GID}" | cut -d: -f1)" && \
     if [ -n "${G}" ] ; then \
         groupmod -n "${APP_GROUP}" "${G}" ; \
     else \
