@@ -33,8 +33,6 @@ ARG YARN_REPO="https://dl.yarnpkg.com/debian/"
 
 ARG AWS_SRC="https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"
 
-ARG AWX_SRC="https://releases.ansible.com/ansible-tower/cli/ansible-tower-cli-latest.tar.gz"
-
 ARG GIT_LFS_VER="3.5.1"
 ARG GIT_LFS_SRC="https://github.com/git-lfs/git-lfs/releases/download/v${GIT_LFS_VER}/git-lfs-linux-amd64-v${GIT_LFS_VER}.tar.gz"
 
@@ -187,11 +185,6 @@ RUN mkdir -p "/aws" && \
     ./aws/install && \
     cd / && \
     rm -rf "/aws"
-
-#
-# Add AWX (no need to add it as a separate tool b/c we only ever need 1 version)
-#
-RUN pip3 install "${AWX_SRC}"
 
 #
 # Add Git-LFS (no need to add it as a separate tool b/c we only ever need 1 version)
