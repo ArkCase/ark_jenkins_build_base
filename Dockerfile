@@ -221,6 +221,7 @@ COPY --chown=root:root conf.d /conf.d
 # Create the user and their home, and their group, commandeer any
 # existing user just in case
 #
+RUN groupadd -r build
 RUN G="$(getent group "${APP_GID}" | cut -d: -f1)" && \
     if [ -n "${G}" ] ; then \
         groupmod -n "${APP_GROUP}" "${G}" ; \
@@ -228,9 +229,9 @@ RUN G="$(getent group "${APP_GID}" | cut -d: -f1)" && \
         groupadd -g "${APP_UID}" "${APP_GROUP}" ; \
     fi
 RUN if U="$(id -nu "${APP_UID}")" ; then \
-        usermod -c "Jenkins Build User" -m -d "/home/${APP_USER}" -g "${APP_GID}" -G "docker" -s "/bin/bash" -a -l "${APP_USER}" "${U}" ; \
+        usermod -c "Jenkins Build User" -m -d "/home/${APP_USER}" -g "${APP_GID}" -G "build,docker" -s "/bin/bash" -a -l "${APP_USER}" "${U}" ; \
     else \
-        useradd -c "Jenkins Build User" -m -d "/home/${APP_USER}" -g "${APP_GID}" -G "docker" -s "/bin/bash" -N -u "${APP_UID}" "${APP_USER}" ; \
+        useradd -c "Jenkins Build User" -m -d "/home/${APP_USER}" -g "${APP_GID}" -G "build,docker" -s "/bin/bash" -N -u "${APP_UID}" "${APP_USER}" ; \
     fi
 
 #
