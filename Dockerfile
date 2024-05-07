@@ -5,7 +5,7 @@ FROM ubuntu:latest
 #
 ARG ARCH="amd64"
 ARG OS="linux"
-ARG VER="1.2.0"
+ARG VER="1.3.0"
 ARG PKG="jenkins-build-base"
 ARG APP_USER="jenkins"
 ARG APP_UID="1000"
@@ -212,12 +212,6 @@ ADD --chown=root:root tools /tools
 RUN install-tool /tools/*
 
 #
-# Add the default initializers & configurators
-#
-COPY --chown=root:root init.d /init.d
-COPY --chown=root:root conf.d /conf.d
-
-#
 # Create the user and their home, and their group, commandeer any
 # existing user just in case
 #
@@ -248,7 +242,6 @@ RUN /usr/bin/git config --global credential.helper cache && \
 #
 # Final parameters
 #
-VOLUME      [ "/init.d" ]
 VOLUME      [ "/home/${APP_USER}" ]
 
 WORKDIR     "/home/${APP_USER}"
