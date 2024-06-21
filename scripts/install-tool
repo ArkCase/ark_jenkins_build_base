@@ -28,7 +28,7 @@ warn()
 }
 
 err() {
-	say "❌ ${@}" 1>&2
+	say "❌ ${@}"
 }
 
 fail() {
@@ -67,6 +67,15 @@ usage()
 
 [ ${#} -gt 0 ] || usage
 
+[ -v DEBUG ] || DEBUG=""
+[ -n "${DEBUG}" ] || DEBUG="false"
+case "${DEBUG,,}" in
+	true | false ) ;;
+	* ) DEBUG="false" ;;
+esac
+
+"${DEBUG}" && set -x
+
 doing "Installing ${#} tools..."
 FAILED=()
 for TOOL in "${@}" ; do
@@ -94,16 +103,15 @@ for TOOL in "${@}" ; do
 	doing "Installing the tool from [${TOOL}]..."
 	while read VERSION ARTIFACT ; do
 		doing "Processing version ${VERSION} from [${ARTIFACT}]..."
-		if ( cd "${TOOL}" && ./.install "${VERSION}" "${ARTIFACT}" ) ; then
-			VERSIONS+=("${VERSION}")
-			ok "Installation complete!"
-		else
-			err "Installation failed!"
-			FAILED+=("${TOOL}@${VERSION}")
-		fi
+		(
+			set -euo pipefail
+			cd "${TOOL}"
+			exec ./.install "${VERSION}" "${ARTIFACT}"
+		) || fail "Installation failed for ${TOOL} version ${VERSION}"
+
+		VERSIONS+=("${VERSION}")
+		ok "Installation complete!"
 	done < <(list_artifacts "${ARTIFACTS}")
 	select_latest "${VERSIONS[@]}"
 done
-
-[ ${#FAILED[@]} -eq 0 ] || fail "The following tool versions did not install properly: ${FAILED[@]}"
 exit 0
