@@ -5,7 +5,7 @@ FROM ubuntu:latest
 #
 ARG ARCH="amd64"
 ARG OS="linux"
-ARG VER="1.3.0"
+ARG VER="1.4.0"
 ARG PKG="jenkins-build-base"
 ARG APP_USER="jenkins"
 ARG APP_UID="1000"
@@ -16,11 +16,11 @@ ARG DOCKER_KEYRING="https://download.docker.com/linux/ubuntu/gpg"
 ARG DOCKER_DEB_DISTRO="jammy"
 ARG DOCKER_PACKAGE_REPO="https://download.docker.com/linux/ubuntu"
 
-ARG K8S_VER="1.28"
+ARG K8S_VER="1.30"
 ARG K8S_KEYRING="https://pkgs.k8s.io/core:/stable:/v${K8S_VER}/deb/Release.key"
 ARG K8S_PACKAGE_REPO="https://pkgs.k8s.io/core:/stable:/v${K8S_VER}/deb/"
 
-ARG HELM_VER="3.14.4"
+ARG HELM_VER="3.15.2"
 ARG HELM_SRC="https://get.helm.sh/helm-v${HELM_VER}-linux-amd64.tar.gz"
 
 ARG GITHUB_KEYRING="https://cli.github.com/packages/githubcli-archive-keyring.gpg"
@@ -36,7 +36,7 @@ ARG AWS_SRC="https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"
 ARG GIT_LFS_VER="3.5.1"
 ARG GIT_LFS_SRC="https://github.com/git-lfs/git-lfs/releases/download/v${GIT_LFS_VER}/git-lfs-linux-amd64-v${GIT_LFS_VER}.tar.gz"
 
-ARG VCODE_VER="23.8.12.0"
+ARG VCODE_VER="24.4.13.0"
 ARG VCODE_SRC="com.veracode.vosp.api.wrappers:vosp-api-wrappers-java:${VCODE_VER}:zip:dist"
 
 #
