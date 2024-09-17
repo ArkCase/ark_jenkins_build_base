@@ -4,22 +4,7 @@ BASEDIR="$(/usr/bin/dirname "${SCRIPT}")"
 SCRIPT="$(/usr/bin/basename "${SCRIPT}")"
 
 set -euo pipefail
-
-timestamp()
-{
-	/usr/bin/date -Ins -u
-}
-
-say()
-{
-	echo -e "$(timestamp): ${@}"
-}
-
-fail()
-{
-	say "❌ ${@}" 1>&2
-	exit ${EXIT_CODE:-1}
-}
+. /.functions
 
 download()
 {

@@ -1,40 +1,8 @@
 #!/bin/bash
 SCRIPT="$(readlink -f "${BASH_ARGV0:-${BASH_SOURCE:-${0}}}")"
+
 set -euo pipefail
-
-timestamp()
-{
-	/usr/bin/date -Ins -u
-}
-
-say()
-{
-	echo -e "$(timestamp): ${@}"
-}
-
-doing()
-{
-	say "👉 ${@}"
-}
-
-ok()
-{
-	say "✅ ${@}"
-}
-
-warn()
-{
-	say "⚠️ ${@}"
-}
-
-err() {
-	say "❌ ${@}"
-}
-
-fail() {
-	err "${@}"
-	exit ${EXIT_CODE:-1}
-}
+. /.functions
 
 list_artifacts()
 {
