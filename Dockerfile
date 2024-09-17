@@ -5,7 +5,7 @@ FROM ubuntu:latest
 #
 ARG ARCH="amd64"
 ARG OS="linux"
-ARG VER="1.4.0"
+ARG VER="1.5.0"
 ARG PKG="jenkins-build-base"
 ARG APP_USER="jenkins"
 ARG APP_UID="1000"
@@ -238,6 +238,8 @@ USER "${APP_USER}"
 #
 RUN /usr/bin/git config --global credential.helper cache && \
     /usr/bin/git config --global --add safe.directory '*'
+
+COPY --chown=root:root functions /.functions
 
 #
 # Final parameters
