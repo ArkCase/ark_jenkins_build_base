@@ -173,6 +173,7 @@ RUN apt-get update && \
 #
 # Install all the base tools framework
 #
+COPY --chown=root:root functions /.functions
 COPY --chown=root:root scripts/ /usr/local/bin
 
 #
@@ -238,9 +239,6 @@ USER "${APP_USER}"
 #
 RUN /usr/bin/git config --global credential.helper cache && \
     /usr/bin/git config --global --add safe.directory '*'
-
-COPY --chown=root:root functions /.functions
-
 #
 # Final parameters
 #
