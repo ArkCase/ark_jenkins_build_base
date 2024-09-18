@@ -1362,14 +1362,14 @@ auth_params()
 }
 
 #
-# usage: execute_conditionally VAR_NAME COMMAND [ARGS ...]
+# usage: execute_unless VAR_NAME COMMAND [ARGS ...]
 #
 # Execute the given command conditionally, in case the given variable has
 # a boolean-false value (or is not set).
 #
-execute_conditionally()
+execute_unless()
 {
-	[ ${#} -ge 2 ] || fail "execute_conditionally requires the name of the variable AND the command to execute"
+	[ ${#} -ge 2 ] || fail "execute_unless requires the name of the variable AND the command to execute"
 
 	local __VAR="${1}"
 	shift
