@@ -1380,7 +1380,7 @@ execute_conditionally()
 	# Show the command about to be executed
 	#
 	running "${@@Q}"
-	if ! as_boolean "${!__VAR}" ; then
+	if as_boolean "${!__VAR}" ; then
 		warn "${__VAR} is set to true, Skipping the command execution"
 		return 0
 	fi
