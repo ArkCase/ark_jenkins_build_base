@@ -1345,16 +1345,22 @@ poll_url_insecure()
 #
 auth_params()
 {
-	local USER="${1}"
+	local USER=""
 	local PASS=""
 
-	if [ ${#} -eq 1 ] ; then
-		[[ "${USER}" =~ ^([^:]*)(:(.*))?$ ]] || true
-		USER="${BASH_REMATCH[1]}"
-		PASS="${BASH_REMATCH[3]}"
-	else
-		PASS="${2}"
-	fi
+	case ${#} in
+		0 )	;;
+
+		1 )	USER="${1}"
+			[[ "${USER}" =~ ^([^:]*)(:(.*))?$ ]] || true
+			USER="${BASH_REMATCH[1]}"
+			PASS="${BASH_REMATCH[3]}"
+			;;
+
+		* )	USER="${1}"
+			PASS="${2}"
+			;;
+	esac
 
 	cat <<-EOF
 	user "${USER}:${PASS}"
