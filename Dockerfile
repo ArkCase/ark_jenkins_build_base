@@ -13,7 +13,6 @@ ARG APP_GROUP="${APP_USER}"
 ARG APP_GID="${APP_UID}"
 
 ARG DOCKER_KEYRING="https://download.docker.com/linux/ubuntu/gpg"
-ARG DOCKER_DEB_DISTRO="jammy"
 ARG DOCKER_PACKAGE_REPO="https://download.docker.com/linux/ubuntu"
 
 ARG K8S_VER="1.30"
@@ -77,6 +76,7 @@ RUN apt-get update && \
     ( rm -f "${TRUSTED_GPG_DIR}/docker.gpg" &>/dev/null || true ) && \
     curl -fsSL "${DOCKER_KEYRING}" | gpg --dearmor -o "${TRUSTED_GPG_DIR}/docker.gpg" && \
     chmod a+r "${TRUSTED_GPG_DIR}/docker.gpg" && \
+    DOCKER_DEB_DISTRO="$(. /etc/os-release && echo "${VERSION_CODENAME}")" && \
     echo "deb [arch=${ARCH}] ${DOCKER_PACKAGE_REPO} ${DOCKER_DEB_DISTRO} stable" > "${APT_SOURCES_DIR}/docker.list" && \
     curl -fsSL "${K8S_KEYRING}" | gpg --dearmor -o "${TRUSTED_GPG_DIR}/kubernetes.gpg" && \
     chmod a+r "${TRUSTED_GPG_DIR}/kubernetes.gpg" && \
