@@ -70,6 +70,7 @@ for TOOL in "${@}" ; do
 	VERSIONS=()
 	doing "Installing the tool from [${TOOL}]..."
 	while read VERSION ARTIFACT ; do
+		ARTIFACT="$(echo -n "${ARTIFACT}" | sed -e "s;\${VERSION};${VERSION};g")"
 		doing "Processing version ${VERSION} from [${ARTIFACT}]..."
 		(
 			set -euo pipefail
