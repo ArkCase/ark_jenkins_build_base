@@ -2,6 +2,8 @@
 set -euo pipefail
 . /.functions
 
+DEFAULT_MVN_CENTRAL_REPO="https://repo1.maven.org/maven2"
+
 download()
 {
 	local URL="${1}"
@@ -40,22 +42,35 @@ decrypt()
 usage()
 {
 	{
-		echo -e "usage: ${BASH_ARGV0:-${BASH_SOURCE:-${0}}} artifactSpec repoUrl target"
+		echo -e "usage: ${BASH_ARGV0:-${BASH_SOURCE:-${0}}} artifactSpec [repoUrl] target"
 		echo -e ""
 		echo -e "\t\tartifactSpec: groupId:artifactId[:version[:packaging[:classifier]]]"
 		echo -e "\t\trepoUrl:      URL to the Maven repository housing the artifact (http:// or https://)"
 		echo -e "\t\ttarget:       The final path where the file will be copied into. If it's"
 		echo -e "\t\t              a directory, the downloaded filename will be preserved."
 		echo -e ""
+		echo -e "\t\tIf the repoUrl is not given, the repository specified by the MVN_CENTRAL_REPO"
+		echo -e "\t\tenvironment variable will be used. If this variable is not set, empty, or invalid,"
+		echo -e "\t\tthen the default Maven Central Repository URL at ${DEFAULT_MVN_CENTRAL_REPO}"
+		echo -e "\t\twill be used."
 	} 1>&2
 	exit 1
 }
 
-[ ${#} -eq 3 ] || usage
+[ ${#} -ge 2 ] && [ ${#} -le 3 ] || usage
+if [ ${#} -eq 3 ] ; then
+	ARTIFACT="${1}"
+	REPO_URL="${2}"
+	DEST="${3}"
+else
+	ARTIFACT="${1}"
+	DEST="${2}"
 
-ARTIFACT="${1}"
-REPO_URL="${2}"
-DEST="${3}"
+	set_or_default MVN_CENTRAL_REPO
+	[[ "${MVN_CENTRAL_REPO,,}" =~ ^https?:// ]] || MVN_CENTRAL_REPO="${DEFAULT_MVN_CENTRAL_REPO}"
+	# TODO: More URL validation?
+	REPO_URL="${MVN_CENTRAL_REPO}"
+fi
 
 [[ "${ARTIFACT}" =~ ^([^:[:space:]]+):([^:[:space:]]+)(:([^:[:space:]]+)?(:([^:[:space:]]+)?(:([^:[:space:]]+)?)?)?)?$ ]] || fail "The artifact string [${ARTIFACT}] is not valid"
 GROUP_ID="${BASH_REMATCH[1]}"
