@@ -1,0 +1,15 @@
+#!/bin/bash
+set -euo pipefail
+
+VERSION="${1}"
+ARTIFACT="${2}"
+
+#
+# Download and install the base artifact
+#
+mkdir -p "${VERSION}"
+curl -fsSL "${ARTIFACT}" -o minio.deb
+
+apt-get install "$(readlink -f minio.deb)"
+
+rm -rf minio.deb || true
