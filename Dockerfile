@@ -5,7 +5,7 @@ FROM ubuntu:latest
 #
 ARG ARCH="amd64"
 ARG OS="linux"
-ARG VER="1.8.0"
+ARG VER="1.8.1"
 ARG PKG="jenkins-build-base"
 ARG APP_USER="jenkins"
 ARG APP_UID="1000"
@@ -152,6 +152,7 @@ RUN apt-get update && \
         openssh-client \
         openssl \
         patch \
+        poppler-utils \
         procps \
         python3-pip \
         rsync \
