@@ -5,7 +5,7 @@ FROM ubuntu:latest
 #
 ARG ARCH="amd64"
 ARG OS="linux"
-ARG VER="1.8.1"
+ARG VER="1.8.2"
 ARG PKG="jenkins-build-base"
 ARG APP_USER="jenkins"
 ARG APP_UID="1000"
@@ -37,6 +37,8 @@ ARG GIT_LFS_SRC="https://github.com/git-lfs/git-lfs/releases/download/v${GIT_LFS
 
 ARG VCODE_VER="25.8.16.1"
 ARG VCODE_SRC="com.veracode.vosp.api.wrappers:vosp-api-wrappers-java:${VCODE_VER}:zip:dist"
+
+ARG SEMGREP_VERSION="1.144.0"
 
 #
 # Some important labels
@@ -205,6 +207,12 @@ ENV VCODE_HOME="/opt/vcode-${VCODE_VER}"
 RUN mvn-get "${VCODE_SRC}" "/tmp/veracode.zip" && \
     unzip -o -d "${VCODE_HOME}" "/tmp/veracode.zip" && \
     rm -rf "/tmp/veracode.zip"
+
+#
+# Install Semgrep
+#
+RUN python3 -m pip install --no-cache-dir "semgrep==${SEMGREP_VERSION}" && \
+    semgrep --version
 
 #
 # Execute the multiversion tool installations
