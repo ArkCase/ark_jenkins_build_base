@@ -38,7 +38,7 @@ ARG GIT_LFS_SRC="https://github.com/git-lfs/git-lfs/releases/download/v${GIT_LFS
 ARG VCODE_VER="25.8.16.1"
 ARG VCODE_SRC="com.veracode.vosp.api.wrappers:vosp-api-wrappers-java:${VCODE_VER}:zip:dist"
 
-ARG SEMGREP_VERSION="1.144.0"
+# ARG SEMGREP_VERSION="1.144.0"
 
 #
 # Some important labels
@@ -211,8 +211,8 @@ RUN mvn-get "${VCODE_SRC}" "/tmp/veracode.zip" && \
 #
 # Install Semgrep
 #
-RUN python3 -m pip install --no-cache-dir "semgrep==${SEMGREP_VERSION}" && \
-    semgrep --version
+# RUN python3 -m pip install --no-cache-dir "semgrep==${SEMGREP_VERSION}" && \
+#     semgrep --version
 
 #
 # Execute the multiversion tool installations
