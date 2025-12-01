@@ -1,4 +1,7 @@
-FROM ubuntu:latest
+ARG UBUNTU_VER="24.04"
+ARG BASE_IMG="ubuntu:${UBUNTU_VER}"
+
+FROM "${BASE_IMG}"
 
 #
 # Basic Parameters
