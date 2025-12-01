@@ -15,7 +15,7 @@ ARG APP_GID="${APP_UID}"
 ARG DOCKER_KEYRING="https://download.docker.com/linux/ubuntu/gpg"
 ARG DOCKER_PACKAGE_REPO="https://download.docker.com/linux/ubuntu"
 
-ARG K8S_VER="1.32"
+ARG K8S_VER="1.33"
 ARG K8S_KEYRING="https://pkgs.k8s.io/core:/stable:/v${K8S_VER}/deb/Release.key"
 ARG K8S_PACKAGE_REPO="https://pkgs.k8s.io/core:/stable:/v${K8S_VER}/deb/"
 
