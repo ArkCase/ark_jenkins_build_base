@@ -41,7 +41,7 @@ ARG GIT_LFS_SRC="https://github.com/git-lfs/git-lfs/releases/download/v${GIT_LFS
 ARG VCODE_VER="25.8.16.1"
 ARG VCODE_SRC="com.veracode.vosp.api.wrappers:vosp-api-wrappers-java:${VCODE_VER}:zip:dist"
 
-# ARG SEMGREP_VERSION="1.144.0"
+ARG SEMGREP_VERSION="1.144.0"
 
 #
 # Some important labels
@@ -211,11 +211,20 @@ RUN mvn-get "${VCODE_SRC}" "/tmp/veracode.zip" && \
     unzip -o -d "${VCODE_HOME}" "/tmp/veracode.zip" && \
     rm -rf "/tmp/veracode.zip"
 
+
 #
-# Install Semgrep
+# Instal Semgrep in a virtual environment
 #
-# RUN python3 -m pip install --no-cache-dir "semgrep==${SEMGREP_VERSION}" && \
-#     semgrep --version
+RUN apt update && \
+    apt install -y python3-venv && \
+    python3 -m venv /opt/jenkins/tools/semgrep-venv && \
+    /opt/jenkins/tools/semgrep-venv/bin/pip3 install semgrep==${SEMGREP_VERSION}
+
+# Download specific rulesets
+RUN /opt/jenkins/tools/semgrep-venv/bin/semgrep --config p/owasp-top-ten --dry-run && \
+    /opt/jenkins/tools/semgrep-venv/bin/semgrep --config p/secrets --dry-run && \
+    /opt/jenkins/tools/semgrep-venv/bin/semgrep --config p/java --dry-run && \
+    /opt/jenkins/tools/semgrep-venv/bin/semgrep --config p/findsecbugs --dry-run
 
 #
 # Execute the multiversion tool installations
