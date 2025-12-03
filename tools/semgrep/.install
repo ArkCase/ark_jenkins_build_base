@@ -1,0 +1,23 @@
+#!/bin/bash
+set -euo pipefail
+
+VERSION="${1}"
+ARTIFACT="${2}"
+
+#
+# Download and install the base artifact
+#
+mkdir -p "${VERSION}"
+python3 -m venv "${VERSION}"
+"${VERSION}/bin/pip3" install "semgrep==${VERSION}"
+
+RULESETS=(
+	p/owasp-top-ten
+	p/secrets
+	p/java
+	p/findsecbugs
+)
+for RULESET in "${RULESETS[@]}" ; do
+	echo "Installing ruleset [${RULESET}] ..."
+	"${VERSION}/bin/semgrep" --config "${RULESET}" --dryrun
+done
