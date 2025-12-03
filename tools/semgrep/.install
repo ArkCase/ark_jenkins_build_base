@@ -18,5 +18,6 @@ RULESETS=(
 	p/findsecbugs
 )
 for RULESET in "${RULESETS[@]}" ; do
-	"${VERSION}/bin/semgrep" --config "${RULESET}" --dry-run
+	echo "Installing ruleset [${RULESET}] ..."
+	"${VERSION}/bin/semgrep" --config "${RULESET}" --dryrun
 done
