@@ -148,6 +148,14 @@ RUN apt-get update && \
         libxml2-utils \
         libxslt-dev \
         libyaml-dev \
+        libgtk2.0-0t64 \
+        libgtk-3-0t64 \
+        libgbm-dev \
+        libnotify-dev \
+        libnss3 \
+        libxss1 \
+        libasound2t64 \
+        libxtst6 \
         make \
         mercurial \
         mutt \
@@ -167,6 +175,8 @@ RUN apt-get update && \
         wget \
         xmlstarlet \
         xz-utils \
+        xauth \
+        xvfb \
         yarn \
         zip \
         zlib1g-dev \
