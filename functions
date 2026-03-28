@@ -6,6 +6,23 @@
 #
 
 #
+# If this has already been called, then we don't
+# repeat the work. To do a reload, simply run
+# "undef functions_loaded" to skip this step
+#
+declare -f functions_loaded &>/dev/null && return 0
+
+#
+# usage: functions_loaded
+#
+# Always returns a 0 status, can be used as a canary
+# to see if this file has been sourced
+functions_loaded()
+{
+	return 0
+}
+
+#
 # usage: timestamp
 #
 # Outputs the current system time in UTC, using ISO-8601
@@ -95,6 +112,24 @@ quit()
 {
 	say "🚪 ${@}"
 	exit 0
+}
+
+#
+# usage: trap on_err ERR
+#
+# Handle script errors and report the line they happened on
+#
+on_err()
+{
+	local RC=$? # save the exit code as the first thing done in the trap function
+	err "Script error"
+	echo -e "\tCOMMAND: [${BASH_COMMAND}]"
+	echo -e "\tEXIT CODE: ${RC}"
+	for (( N=1 ; N < ${#BASH_SOURCE[@]} ; N++ )) ; do
+		M=$(( N - 1 )) || true
+		echo -e "\t\tat ${BASH_SOURCE[${N}]@Q} @ ${BASH_LINENO[${M}]}"
+	done
+	exit ${RC}
 }
 
 #
@@ -682,6 +717,12 @@ csv_to_list()
 to_array()
 {
 	local __VAR="${1}"
+
+	# BUGFIX: make the behavior consistent with the old code.
+	# If the variable is not declared, then declare it as an
+	# empty array
+	[ -v "${__VAR}" ] || { declare -ga "${__VAR}" ; return 0 ; }
+
 	local __EXPORT="false"
 	case "$(__get_var_flags "${__VAR}")" in
 		# Ignore arrays and read-only variables
@@ -692,24 +733,24 @@ to_array()
 		*x* ) __EXPORT="true" ;;
 	esac
 
-	if [ -v "${__VAR}" ] ; then
-		# Do the conversion
-		local __V="${!__VAR}"
+	# Do the conversion
+	local __V="${!__VAR}"
+
+	if [ -z "${__V}" ] ; then
 		# Empty strings should convert to empty arrays
-		if [ -n "${__V}" ] ; then
-			# This will yield a non-empty array
-			readarray -t "${__VAR}" < <(to_list "${!__VAR}")
-		else
-			# Make sure it's an empty array
-			unset "${__VAR}"
-			declare -ga "${__VAR}"
-		fi
-		# Restore the export flag
-		"${__EXPORT}" && declare -x "${__VAR}"
-	else
-		# Do the declaration
+		unset "${__VAR}"
 		declare -ga "${__VAR}"
+	else
+		# This will yield a non-empty array
+		local __LIST=""
+		__LIST="$(to_list "${__V}")" || return 1
+		unset "${__VAR}"
+		declare -ga "${__VAR}"
+		readarray -t "${__VAR}" < <(echo -n "${__LIST}")
 	fi
+
+	# Restore the export flag
+	as_boolean "${__EXPORT}" && declare -x "${__VAR}"
 	return 0
 }
 
@@ -785,6 +826,54 @@ set_or_default()
 set_as_boolean()
 {
 	__var_set_tool to_boolean "${@}"
+}
+
+#
+# usage: is_nonempty VAR
+#
+# Returns 0 if the variable is defined and has a non-empty
+# string as its value, and non-0 otherwise. If the variable
+# name is blank, or the wrong number of parameters is given,
+# then a non-0 value is returned.
+#
+is_nonempty()
+{
+	[ ${#} -eq 1 ] || return 1
+	local VAR="${1}"
+	[ -n "${VAR}" ] || return 2
+	[ -v "${VAR}" ] || return 3
+	[ -n "${!VAR}" ] || return 4
+	return 0
+}
+
+#
+# usage: is_all_nonempty VAR1 [ VAR2 VAR3 ... VARN ]
+#
+# Apply is_nonempty to each variable named. If any
+# invocation results in a non-0 status, then non-0
+# is returned. Otherwise, 0 is returned. If no
+# variable names are given, 0 is returned
+is_all_nonempty()
+{
+	for VAR in "${@}" ; do
+		is_nonempty "${VAR}" || return 1
+	done
+	return 0
+}
+
+#
+# usage: is_any_nonempty VAR1 [ VAR2 VAR3 ... VARN ]
+#
+# Apply is_nonempty to each variable named. If any
+# invocation results in a 0 status, then 0
+# is returned. Otherwise, non-0 is returned. If no
+# variable names are given, non-0 is returned
+is_any_nonempty()
+{
+	for VAR in "${@}" ; do
+		is_nonempty "${VAR}" && return 0
+	done
+	return 1
 }
 
 #
@@ -1154,11 +1243,11 @@ urldecode_query()
 xml_escape()
 {
 	local __V="${1}"
-	__V="${__V//&/&amp;}"
-	__V="${__V//</&lt;}"
-	__V="${__V//>/&gt;}"
-	__V="${__V//\"/&quot;}"
-	__V="${__V//\'/&apos;}"
+	__V="${__V//&/\&amp;}"
+	__V="${__V//</\&lt;}"
+	__V="${__V//>/\&gt;}"
+	__V="${__V//\"/\&quot;}"
+	__V="${__V//\'/\&apos;}"
 	echo -n "${__V}"
 }
 
@@ -1174,7 +1263,7 @@ xml_unescape()
 	__V="${__V//&gt;/>}"
 	__V="${__V//&quot;/\"}"
 	__V="${__V//&apos;/\'}"
-	__V="${__V//&amp;/&}"
+	__V="${__V//&amp;/\&}"
 	echo -n "${__V}"
 }
 
@@ -1278,8 +1367,9 @@ redirect_logs()
 __ssl()
 {
 	local OP="${1}"
+
 	set_or_default SSL_DIR "/.ssl"
-	export SSL_DIR
+	declare -xg SSL_DIR
 	"/usr/local/bin/acme-${OP}"
 }
 
@@ -1290,7 +1380,12 @@ __ssl()
 #
 init_ssl()
 {
-	__ssl init
+	__ssl init || return ${?}
+
+	local RC=0
+	. "${SSL_DIR}/.env" || RC=${?}
+	[ ${RC} -eq 0 ] || err "Failed to load the SSL environment variables (rc=${RC})"
+	return ${RC}
 }
 
 #
@@ -1433,14 +1528,14 @@ execute_unless()
 }
 
 #
-# usage: fips_enabled
+# usage: is_fips
 #
 # Check to see if FIPS is enabled, and return
 # a 0 status if it is, non-0 if it is not.
 #
-fips_enabled()
+is_fips()
 {
-	[ -v FIPS_FLAG_FILE ] || FIPS_FLAG_FILE="/proc/sys/crypto/fips_enabled"
+	local FIPS_FLAG_FILE="/proc/sys/crypto/fips_enabled"
 
 	# If the flag file isn't there and readable, fail
 	is_file_readable "${FIPS_FLAG_FILE}" || return 2
@@ -1455,7 +1550,53 @@ fips_enabled()
 	# If the number from the flag file is not 1, fail
 	[ ${FIPS_FLAG} -eq 1 ] || return 1
 
-	# The flag file is there and contains a non-0 number
+	# The flag file is there and has the correct value
+	return 0
+}
+
+#
+# usage: set_godebug_fips140
+#
+# Set the GODEBUG variable's FIPS140 value to the correct setting.
+#
+set_godebug_fips140()
+{
+	local FIPS_MODE="off"
+
+	if is_fips ; then
+		ok "FIPS is available!"
+		FIPS_MODE="only"
+	else
+		err "FIPS is not available"
+	fi
+
+	# Allow for customizing the value set for GODEBUG
+	# for experimentation, but ignore invalid values
+	if [ -v GOLANG_FIPS140 ] ; then
+		FIPS_MODE="${GOLANG_FIPS140,,}"
+		case "${FIPS_MODE}" in
+			only | on | off ) ;;
+			* ) err "Unsupported FIPS mode for GoLang [${GOLANG_FIPS140}] - must be one of 'only', 'on', or 'off'" ; return 1 ;;
+		esac
+	fi
+
+	# Configure any GoLang stuff
+	set_or_default GODEBUG
+	local FLAG="fips140"
+	local ARR=()
+	readarray -t ARR < <(echo -n "${GODEBUG}" | tr ',' '\n' | grep -Evi "^\s*${FLAG}=" | sed -e '/^\s*$/d')
+
+	# Start with a new value
+	local NEW=""
+	# Add all the previous values
+	for V in "${ARR[@]}" ; do
+		NEW+="${NEW:+,}${V}"
+	done
+
+	# Add the value we're interested in
+	NEW+="${NEW:+,}${FLAG}=${FIPS_MODE}"
+	declare -xg GODEBUG="${NEW}"
+
 	return 0
 }
 
@@ -1492,7 +1633,10 @@ get_cluster_domain()
 	[ -n "${NAMESPACE}" ] || return 0
 
 	# Let's see what we can do
-	hostname -f | sed -e "s;^.*\.${NAMESPACE}\.svc\.;;g"
+	local HN="$(hostname -f)"
+	local CLUSTER_DOMAIN=""
+	[[ "${HN}" =~ ^.*[.]${NAMESPACE}[.]svc[.](.*)$ ]] && echo -n "${BASH_REMATCH[1]}"
+	return 0
 }
 
 #
@@ -1528,3 +1672,5 @@ run_and_capture()
 		--arg RC "${RC}" '{ "stdout": $OUT, "stderr": $ERR, "status": ($RC | tonumber) }'
 	return ${RC}
 }
+
+as_boolean "${DEBUG_FUNCTIONS:-false}" && trap on_err ERR || true
