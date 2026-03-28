@@ -94,6 +94,7 @@ RUN apt-get update && \
     apt-get install -y \
         autoconf \
         automake \
+        bash-completion \
         bzip2 \
         bzr \
         ca-certificates \
