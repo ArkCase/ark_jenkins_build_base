@@ -173,7 +173,9 @@ RUN apt-get update && \
       && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
-    curl -fsSL "${HELM_SRC}" | tar -C /usr/local/bin --strip-components=1 -xzvf - linux-amd64/helm
+    curl -fsSL "${HELM_SRC}" | tar -C /usr/local/bin --strip-components=1 -xzvf - linux-amd64/helm && \
+    kubectl completion bash > /usr/share/bash-completion/completions/kubectl && \
+    helm completion bash > /usr/share/bash-completion/completions/helm
 
 #
 # Install all the base tools framework
@@ -190,7 +192,8 @@ RUN mkdir -p "/aws" && \
     unzip "awscliv2.zip" && \
     ./aws/install && \
     cd / && \
-    rm -rf "/aws"
+    rm -rf "/aws" && \
+    echo "complete -C '/usr/local/bin/aws_completer' aws" > /etc/profile.d/02-aws.sh
 
 #
 # Add Git-LFS (no need to add it as a separate tool b/c we only ever need 1 version)
