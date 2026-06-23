@@ -1,5 +1,18 @@
+ARG PRIVATE_REGISTRY
+
 ARG UBUNTU_VER="24.04"
+ARG BASE_VER_PFX=""
 ARG BASE_IMG="ubuntu:${UBUNTU_VER}"
+
+ARG SCRIPTS_REGISTRY="${PRIVATE_REGISTRY}"
+ARG SCRIPTS_REPO="arkcase/base-container-scripts"
+ARG SCRIPTS_VER="latest"
+ARG SCRIPTS_VER_PFX="${BASE_VER_PFX}"
+ARG SCRIPTS_IMG="${SCRIPTS_REGISTRY}/${SCRIPTS_REPO}:${SCRIPTS_VER_PFX}${SCRIPTS_VER}"
+
+FROM "${SCRIPTS_IMG}" AS scripts
+
+ARG BASE_IMG
 
 FROM "${BASE_IMG}"
 
@@ -8,7 +21,7 @@ FROM "${BASE_IMG}"
 #
 ARG ARCH="amd64"
 ARG OS="linux"
-ARG VER="1.9.0"
+ARG VER="1.10.0"
 ARG PKG="jenkins-build-base"
 ARG APP_USER="jenkins"
 ARG APP_UID="1000"
@@ -181,7 +194,8 @@ RUN apt-get update && \
 #
 # Install all the base tools framework
 #
-COPY --chown=root:root functions /.functions
+COPY --chown=root:root --chmod=0755 --from=scripts /usr/local/bin/ /usr/local/bin/
+COPY --chown=root:root --chmod=0444 --from=scripts /.functions /.functions
 COPY --chown=root:root scripts/ /usr/local/bin
 
 #
