@@ -72,14 +72,16 @@ ENV APP_GID="${APP_GID}"
 ENV APP_VER="${VER}"
 ENV TRUSTED_GPG_DIR="/etc/apt/trusted.gpg.d"
 ENV APT_SOURCES_DIR="/etc/apt/sources.list.d"
+ENV CACERTS="/etc/ssl/certs/java/cacerts"
 
 #
 # Prep to make GitLab CLI and GitHub CLI available
 #
 RUN apt-get update && \
-    apt-get install -y \
+    apt-get -y install \
         curl \
         gpg \
+        sudo \
       && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
@@ -96,15 +98,33 @@ RUN apt-get update && \
     echo "deb [arch=${ARCH}] ${DOCKER_PACKAGE_REPO} ${DOCKER_DEB_DISTRO} stable" > "${APT_SOURCES_DIR}/docker.list" && \
     curl -fsSL "${K8S_KEYRING}" | gpg --dearmor -o "${TRUSTED_GPG_DIR}/kubernetes.gpg" && \
     chmod a+r "${TRUSTED_GPG_DIR}/kubernetes.gpg" && \
-    echo "deb ${K8S_PACKAGE_REPO} /" > "${APT_SOURCES_DIR}/kubernetes.list"
+    echo "deb ${K8S_PACKAGE_REPO} /" > "${APT_SOURCES_DIR}/kubernetes.list" && \
+    CORETTO_KEYRING="${TRUSTED_GPG_DIR}/corretto-keyring.gpg" && \
+    curl -fsSL "https://apt.corretto.aws/corretto.key" | gpg --dearmor -o "${CORETTO_KEYRING}" && \
+    chmod a+r "${CORETTO_KEYRING}" && \
+    echo "deb [signed-by=${CORETTO_KEYRING}] https://apt.corretto.aws stable main" | tee /etc/apt/sources.list.d/corretto.list
 
+#
+# Install all the base tools framework
+#
+COPY --chown=root:root --chmod=0755 --from=scripts /usr/local/bin/ /usr/local/bin/
+COPY --chown=root:root --chmod=0444 --from=scripts /.functions /.functions
+COPY --chown=root:root scripts/ /usr/local/bin
+
+RUN --mount=type=bind,target=/src \
+    SUDO_DIR="/etc/sudoers.d" && \
+    cp /src/01-set-java "${SUDO_DIR}" && \
+    FILE="${SUDO_DIR}/01-set-java" && \
+    sed -i -e "s;\${APP_GROUP};${APP_GROUP};g" "${FILE}" && \
+    chown root:root "${FILE}" && \
+    chmod 0640 "${FILE}"
 
 #
 # O/S updates, and base tools
 #
 RUN apt-get update && \
     apt-get -y dist-upgrade -f && \
-    apt-get install -y \
+    apt-get -y install \
         autoconf \
         automake \
         bash-completion \
@@ -166,6 +186,10 @@ RUN apt-get update && \
         mercurial \
         mutt \
         netbase \
+        java-11-amazon-corretto-jdk \
+        openjdk-17-jdk \
+        openjdk-21-jdk \
+        openjdk-25-jdk \
         openssh-client \
         openssl \
         patch \
@@ -189,14 +213,19 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/* && \
     curl -fsSL "${HELM_SRC}" | tar -C /usr/local/bin --strip-components=1 -xzvf - linux-amd64/helm && \
     kubectl completion bash > /usr/share/bash-completion/completions/kubectl && \
-    helm completion bash > /usr/share/bash-completion/completions/helm
+    helm completion bash > /usr/share/bash-completion/completions/helm && \
+    find /usr/lib/jvm -type f -name cacerts | \
+    while read file ; do \
+        ln -v "${file}" "${file}.orig" && \
+        rm -vf "${file}" && \
+        ln -vs "${CACERTS}" "${file}" ; \
+    done && \
+    set-java 21 && \
+    update-ca-certificates
 
-#
-# Install all the base tools framework
-#
-COPY --chown=root:root --chmod=0755 --from=scripts /usr/local/bin/ /usr/local/bin/
-COPY --chown=root:root --chmod=0444 --from=scripts /.functions /.functions
-COPY --chown=root:root scripts/ /usr/local/bin
+ENV JVM_BASE="/usr/lib/jvm"
+ENV JAVA_HOME="${JVM_BASE}/java"
+ENV JRE_HOME="${JVM_BASE}/jre"
 
 #
 # Add AWS (no need to add it as a separate tool b/c we only ever need 1 version)
