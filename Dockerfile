@@ -10,7 +10,15 @@ ARG SCRIPTS_VER="latest"
 ARG SCRIPTS_VER_PFX="${BASE_VER_PFX}"
 ARG SCRIPTS_IMG="${SCRIPTS_REGISTRY}/${SCRIPTS_REPO}:${SCRIPTS_VER_PFX}${SCRIPTS_VER}"
 
+ARG MINIO_REGISTRY="${PRIVATE_REGISTRY}"
+ARG MINIO_REPO="arkcase/minio"
+ARG MINIO_VER="latest"
+ARG MINIO_VER_PFX="${BASE_VER_PFX}"
+ARG MINIO_IMG="${MINIO_REGISTRY}/${MINIO_REPO}:${MINIO_VER_PFX}${MINIO_VER}"
+
 FROM "${SCRIPTS_IMG}" AS scripts
+
+FROM "${MINIO_IMG}" AS minio
 
 ARG BASE_IMG
 
@@ -110,6 +118,7 @@ RUN apt-get update && \
 COPY --chown=root:root --chmod=0755 --from=scripts /usr/local/bin/ /usr/local/bin/
 COPY --chown=root:root --chmod=0444 --from=scripts /.functions /.functions
 COPY --chown=root:root scripts/ /usr/local/bin
+COPY --chown=root:root --chmod=0755 --from=minio /usr/local/bin/minio /usr/local/bin/
 
 RUN --mount=type=bind,target=/src \
     SUDO_DIR="/etc/sudoers.d" && \
