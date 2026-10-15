@@ -29,7 +29,7 @@ FROM "${BASE_IMG}"
 #
 ARG ARCH="amd64"
 ARG OS="linux"
-ARG VER="1.10.0"
+ARG VER="1.11.0"
 ARG PKG="jenkins-build-base"
 ARG APP_USER="jenkins"
 ARG APP_UID="1000"
@@ -269,9 +269,10 @@ RUN mvn-get "${VCODE_SRC}" "/tmp/veracode.zip" && \
 #
 # Execute the multiversion tool installations
 #
-COPY --chown=root:root scripts/install-tool /usr/local/bin
-ADD --chown=root:root tools /tools
-RUN install-tool /tools/*
+RUN --mount=type=bind,target=/src \
+    cp -r /src/tools / && \
+    /src/scripts/install-tool /tools/* && \
+    cd /src/tools && find . -type f | xargs -r -I'{}' rm -vf '/tools/{}'
 
 #
 # Create the user and their home, and their group, commandeer any
