@@ -29,7 +29,7 @@ FROM "${BASE_IMG}"
 #
 ARG ARCH="amd64"
 ARG OS="linux"
-ARG VER="1.11.0"
+ARG VER="1.12.0"
 ARG PKG="jenkins-build-base"
 ARG APP_USER="jenkins"
 ARG APP_UID="1000"
