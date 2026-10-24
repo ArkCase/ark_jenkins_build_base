@@ -153,7 +153,6 @@ RUN apt-get update && \
         file \
         g++ \
         gcc \
-        gcc \
         gettext-base \
         gh \
         git \
