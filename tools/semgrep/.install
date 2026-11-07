@@ -9,7 +9,7 @@ ARTIFACT="${2}"
 #
 mkdir -p "${VERSION}"
 python3 -m venv "${VERSION}"
-"${VERSION}/bin/pip3" install "semgrep==${VERSION}"
+"${VERSION}/bin/pip3" install --no-cache-dir "semgrep==${VERSION}"
 
 RULESETS=(
 	p/owasp-top-ten

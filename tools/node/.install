@@ -8,7 +8,13 @@ ARTIFACT="${2}"
 # Download and install the base artifact
 #
 mkdir -p "${VERSION}"
-curl -fsSL "${ARTIFACT}" | tar --strip-components=1 -C "${VERSION}" -xJvf -
+curl -fsSL "${ARTIFACT}" | tar --strip-components=1 --no-same-owner -C "${VERSION}" -xJvf -
+
+#
+# Remove the C/C++ headers: they're only for building native addons, and
+# node-gyp downloads the ones it needs instead of using these
+#
+rm -rf "${VERSION}/include"
 
 #
 # Create the links for the remaining versions

@@ -5,7 +5,7 @@ VERSION="${1}"
 ARTIFACT="${2}"
 
 mkdir -p "${VERSION}"
-curl -fsSL "${ARTIFACT}" | tar --strip-components=1 -C "${VERSION}" -xzvf -
+curl -fsSL "${ARTIFACT}" | tar --strip-components=1 --no-same-owner -C "${VERSION}" -xzvf -
 
 P="${VERSION}"
 N=""

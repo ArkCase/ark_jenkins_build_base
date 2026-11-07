@@ -16,7 +16,7 @@ select_latest()
 	local LATEST="$(echo -n "${@}" | tr ' ' '\n' | sort -V -r | head -1 | tr -d '\n')"
 	if [ -n "${LATEST}" ] ; then
 		doing "Setting the latest version to point to [${LATEST}]"
-		if ( cd "${TOOL}" && ln -sv "${LATEST}" "latest" ) ; then
+		if ( cd "${DEST}" && ln -sv "${LATEST}" "latest" ) ; then
 			ok "Latest marker set"
 		else
 			warn "Failed to set the latest marker to point to [${LATEST}]"
@@ -27,13 +27,63 @@ select_latest()
 	return 0
 }
 
+#
+# Give everything the installation created (the version directories, the links,
+# and the directory itself) the newest timestamp among the installed files, so
+# the result only depends on the installed artifacts and not on when it was
+# installed. This only makes sense when the installer only extracts archives.
+#
+normalize_times()
+{
+	local DIR="${1}"
+	local STAMP="$(find "${DIR}" -type f -printf '%T@\n' | sort -n | tail -1 | cut -d. -f1)"
+	[ -n "${STAMP}" ] || fail "No files were installed into [${DIR}], can't compute their timestamp"
+	find "${DIR}" -newermt "@${STAMP}" -exec touch -h -d "@${STAMP}" '{}' + || fail "Failed to normalize the timestamps in [${DIR}]"
+	[ -z "${TARGET}" ] || touch -h -d "@${STAMP}" "${TARGET}" || fail "Failed to normalize the timestamp of [${TARGET}]"
+	ok "Normalized the timestamps in [${DIR}] to $(date -u -d "@${STAMP}")"
+}
+
 usage()
 {
-	echo -e "usage: ${BASH_ARGV0:-${BASH_SOURCE:-${0}}} [tool-dir-1 tool-dir-2 tool-dir-3 ... tool-dir-N]" 1>&2
+	echo -e "usage: ${BASH_ARGV0:-${BASH_SOURCE:-${0}}} [-r | --reproducible] [-t | --target DIR] tool-dir-1 [tool-dir-2 ... tool-dir-N]" 1>&2
+	echo -e "" 1>&2
+	echo -e "\tEach tool-dir holds the tool's .artifacts manifest and .install script. The tool is" 1>&2
+	echo -e "\tinstalled into the tool-dir itself or, with --target, into DIR/<tool-dir's name>." 1>&2
+	echo -e "" 1>&2
+	echo -e "\t--reproducible gives everything the installation created the newest timestamp among" 1>&2
+	echo -e "\tthe installed files (and so does DIR, with --target), so installing the same archives" 1>&2
+	echo -e "\talways produces the same result" 1>&2
 	exit 1
 }
 
+require_exe getopt
+
+ARGS="$(getopt -o "hrt:" -l "help,reproducible,target:" -n "${0##*/}" -- "${@}")" || usage
+
+REPRODUCIBLE="false"
+TARGET=""
+
+eval set -- "${ARGS}"
+while true ; do
+	case "${1}" in
+		--help | -h ) usage ;;
+
+		--reproducible | -r ) REPRODUCIBLE="true" ; shift ;;
+
+		--target | -t ) TARGET="${2}" ; shift 2 ;;
+
+		-- ) shift ; break ;;
+
+		* ) usage ;;
+	esac
+done
+
 [ ${#} -gt 0 ] || usage
+
+if [ -n "${TARGET}" ] ; then
+	mkdir -p "${TARGET}" || fail "Failed to create the target directory [${TARGET}]"
+	TARGET="$(readlink -f "${TARGET}")"
+fi
 
 [ -v DEBUG ] || DEBUG=""
 [ -n "${DEBUG}" ] || DEBUG="false"
@@ -66,21 +116,31 @@ for TOOL in "${@}" ; do
 
 	TOOL="$(readlink -f "${TOOL}")"
 	ARTIFACTS="$(readlink -f "${ARTIFACTS}")"
+	INSTALLER="$(readlink -f "${INSTALLER}")"
+
+	DEST="${TOOL}"
+	if [ -n "${TARGET}" ] ; then
+		DEST="${TARGET}/$(basename "${TOOL}")"
+		mkdir -p "${DEST}" || fail "Failed to create the installation directory [${DEST}]"
+	fi
 
 	VERSIONS=()
-	doing "Installing the tool from [${TOOL}]..."
+	doing "Installing the tool from [${TOOL}] into [${DEST}]..."
 	while read VERSION ARTIFACT ; do
 		ARTIFACT="$(echo -n "${ARTIFACT}" | sed -e "s;\${VERSION};${VERSION};g")"
 		doing "Processing version ${VERSION} from [${ARTIFACT}]..."
 		(
 			set -euo pipefail
-			cd "${TOOL}"
-			exec ./.install "${VERSION}" "${ARTIFACT}"
+			cd "${DEST}"
+			exec "${INSTALLER}" "${VERSION}" "${ARTIFACT}"
 		) || fail "Installation failed for ${TOOL} version ${VERSION}"
 
 		VERSIONS+=("${VERSION}")
 		ok "Installation complete!"
 	done < <(list_artifacts "${ARTIFACTS}")
 	select_latest "${VERSIONS[@]}"
+	if as_boolean "${REPRODUCIBLE}" ; then
+		normalize_times "${DEST}"
+	fi
 done
 exit 0

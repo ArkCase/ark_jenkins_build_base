@@ -82,17 +82,30 @@ ENV TRUSTED_GPG_DIR="/etc/apt/trusted.gpg.d"
 ENV APT_SOURCES_DIR="/etc/apt/sources.list.d"
 ENV CACERTS="/etc/ssl/certs/java/cacerts"
 
+ENV JVM_BASE="/usr/lib/jvm"
+ENV JAVA_HOME="${JVM_BASE}/java"
+ENV JRE_HOME="${JVM_BASE}/jre"
+ENV VCODE_HOME="/opt/vcode-${VCODE_VER}"
+
 #
-# Prep to make GitLab CLI and GitHub CLI available
+# Everything but the multiversion tools, in a single layer: the base tools framework, the package repositories,
+# the O/S updates and packages, the single-version tools (Helm, AWS, Git-LFS, the Veracode API wrapper, and
+# Semgrep), and the build user
 #
-RUN apt-get update && \
+RUN --mount=type=bind,target=/src \
+    --mount=type=bind,from=scripts,target=/scripts \
+    --mount=type=bind,from=minio,source=/usr/local/bin,target=/minio \
+    install -o root -g root -m 0755 -t /usr/local/bin /scripts/usr/local/bin/* /src/scripts/* /minio/minio && \
+    install -o root -g root -m 0444 /scripts/.functions /.functions && \
+    apt-get update && \
     apt-get -y install \
         curl \
         gpg \
         sudo \
       && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* && \
+    sed -e "s;\${APP_GROUP};${APP_GROUP};g" /src/01-set-java > /etc/sudoers.d/01-set-java && \
+    chown root:root /etc/sudoers.d/01-set-java && \
+    chmod 0440 /etc/sudoers.d/01-set-java && \
     curl -fsSL -o /etc/apt/trusted.gpg.d/github-archive.gpg "${GITHUB_KEYRING}" && \
     chmod go+r /etc/apt/trusted.gpg.d/github-archive.gpg && \
     echo "deb [arch=$(dpkg --print-architecture)] ${GITHUB_REPO} stable main" > /etc/apt/sources.list.d/github-cli.list && \
@@ -110,44 +123,21 @@ RUN apt-get update && \
     CORETTO_KEYRING="${TRUSTED_GPG_DIR}/corretto-keyring.gpg" && \
     curl -fsSL "https://apt.corretto.aws/corretto.key" | gpg --dearmor -o "${CORETTO_KEYRING}" && \
     chmod a+r "${CORETTO_KEYRING}" && \
-    echo "deb [signed-by=${CORETTO_KEYRING}] https://apt.corretto.aws stable main" | tee /etc/apt/sources.list.d/corretto.list
-
-#
-# Install all the base tools framework
-#
-COPY --chown=root:root --chmod=0755 --from=scripts /usr/local/bin/ /usr/local/bin/
-COPY --chown=root:root --chmod=0444 --from=scripts /.functions /.functions
-COPY --chown=root:root scripts/ /usr/local/bin
-COPY --chown=root:root --chmod=0755 --from=minio /usr/local/bin/minio /usr/local/bin/
-
-RUN --mount=type=bind,target=/src \
-    SUDO_DIR="/etc/sudoers.d" && \
-    cp /src/01-set-java "${SUDO_DIR}" && \
-    FILE="${SUDO_DIR}/01-set-java" && \
-    sed -i -e "s;\${APP_GROUP};${APP_GROUP};g" "${FILE}" && \
-    chown root:root "${FILE}" && \
-    chmod 0640 "${FILE}"
-
-#
-# O/S updates, and base tools
-#
-RUN apt-get update && \
+    echo "deb [signed-by=${CORETTO_KEYRING}] https://apt.corretto.aws stable main" | tee /etc/apt/sources.list.d/corretto.list && \
+    apt-get update && \
     apt-get -y dist-upgrade -f && \
     apt-get -y install \
         autoconf \
         automake \
         bash-completion \
         bzip2 \
-        bzr \
         ca-certificates \
         ca-certificates-java \
-        containerd.io \
         dirmngr \
         default-libmysqlclient-dev \
         dos2unix \
         docker-buildx-plugin \
         docker-compose-plugin \
-        docker-ce \
         docker-ce-cli \
         dpkg-dev \
         file \
@@ -191,23 +181,23 @@ RUN apt-get update && \
         libxslt-dev \
         libyaml-dev \
         make \
-        mercurial \
         mutt \
         netbase \
         java-11-amazon-corretto-jdk \
-        openjdk-17-jdk \
-        openjdk-21-jdk \
-        openjdk-25-jdk \
+        openjdk-17-jdk-headless \
+        openjdk-21-jdk-headless \
+        openjdk-25-jdk-headless \
         openssh-client \
         openssl \
         patch \
         poppler-utils \
         procps \
+        python3-jinja2 \
         python3-pip \
         python3-venv \
+        python3-yaml \
         rsync \
         sshpass \
-        subversion \
         unzip \
         vim \
         wget \
@@ -219,7 +209,9 @@ RUN apt-get update && \
       && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
-    curl -fsSL "${HELM_SRC}" | tar -C /usr/local/bin --strip-components=1 -xzvf - linux-amd64/helm && \
+    curl -fsSL "${HELM_SRC}" | tar -C /usr/local/bin --strip-components=1 --no-same-owner -xzvf - linux-amd64/helm && \
+    chown root:root /usr/local/bin/helm && \
+    chmod 0755 /usr/local/bin/helm && \
     kubectl completion bash > /usr/share/bash-completion/completions/kubectl && \
     helm completion bash > /usr/share/bash-completion/completions/helm && \
     find /usr/lib/jvm -type f -name cacerts | \
@@ -229,77 +221,55 @@ RUN apt-get update && \
         ln -vs "${CACERTS}" "${file}" ; \
     done && \
     set-java 21 && \
-    update-ca-certificates
-
-ENV JVM_BASE="/usr/lib/jvm"
-ENV JAVA_HOME="${JVM_BASE}/java"
-ENV JRE_HOME="${JVM_BASE}/jre"
-
-#
-# Add AWS (no need to add it as a separate tool b/c we only ever need 1 version)
-#
-RUN mkdir -p "/aws" && \
+    update-ca-certificates && \
+    mkdir -p "/aws" && \
     curl -fsSL "${AWS_SRC}" -o "/aws/awscliv2.zip" && \
-    cd "/aws" && \
-    unzip "awscliv2.zip" && \
-    ./aws/install && \
-    cd / && \
+    ( cd "/aws" && unzip "awscliv2.zip" && ./aws/install ) && \
     rm -rf "/aws" && \
-    echo "complete -C '/usr/local/bin/aws_completer' aws" > /etc/profile.d/02-aws.sh
-
-#
-# Add Git-LFS (no need to add it as a separate tool b/c we only ever need 1 version)
-#
-RUN mkdir -p "/tmp/lfs" && \
-    cd "/tmp/lfs" && \
-    curl -fsSL "${GIT_LFS_SRC}" | tar --strip-components=1 -xzvf - && \
-    bash install.sh && \
-    cd "/tmp" && \
-    rm -rf "lfs"
-
-#
-# Install the Veracode API Wrapper (no need to add it as a separate tool b/c we only ever need 1 version)
-#
-ENV VCODE_HOME="/opt/vcode-${VCODE_VER}"
-RUN mvn-get "${VCODE_SRC}" "/tmp/veracode.zip" && \
+    echo "complete -C '/usr/local/bin/aws_completer' aws" > /etc/profile.d/02-aws.sh && \
+    mkdir -p "/tmp/lfs" && \
+    ( cd "/tmp/lfs" && curl -fsSL "${GIT_LFS_SRC}" | tar --strip-components=1 -xzvf - && bash install.sh ) && \
+    rm -rf "/tmp/lfs" && \
+    mvn-get "${VCODE_SRC}" "/tmp/veracode.zip" && \
     unzip -o -d "${VCODE_HOME}" "/tmp/veracode.zip" && \
-    rm -rf "/tmp/veracode.zip"
-
-#
-# Execute the multiversion tool installations
-#
-RUN --mount=type=bind,target=/src \
-    cp -r /src/tools / && \
-    /src/scripts/install-tool /tools/* && \
-    cd /src/tools && find . -type f | xargs -r -I'{}' rm -vf '/tools/{}'
-
-#
-# Create the user and their home, and their group, commandeer any
-# existing user just in case
-#
-RUN groupadd -r build
-RUN G="$(getent group "${APP_GID}" | cut -d: -f1)" && \
+    rm -rf "/tmp/veracode.zip" && \
+    install-tool --target /tools /src/tools/semgrep && \
+    groupadd -r build && \
+    { getent group docker > /dev/null || groupadd -r docker ; } && \
+    G="$(getent group "${APP_GID}" | cut -d: -f1)" && \
     if [ -n "${G}" ] ; then \
         groupmod -n "${APP_GROUP}" "${G}" ; \
     else \
         groupadd -g "${APP_UID}" "${APP_GROUP}" ; \
-    fi
-RUN if U="$(id -nu "${APP_UID}")" ; then \
+    fi && \
+    if U="$(id -nu "${APP_UID}")" ; then \
         usermod -c "Jenkins Build User" -m -d "/home/${APP_USER}" -g "${APP_GID}" -G "build,docker" -s "/bin/bash" -a -l "${APP_USER}" "${U}" ; \
     else \
         useradd -c "Jenkins Build User" -m -d "/home/${APP_USER}" -g "${APP_GID}" -G "build,docker" -s "/bin/bash" -N -u "${APP_UID}" "${APP_USER}" ; \
-    fi
+    fi && \
+    GITCONFIG="/home/${APP_USER}/.gitconfig" && \
+    git config --file "${GITCONFIG}" credential.helper cache && \
+    git config --file "${GITCONFIG}" --add safe.directory '*' && \
+    chown "${APP_USER}:${APP_GROUP}" "${GITCONFIG}" && \
+    chmod 0644 "${GITCONFIG}"
+
+#
+# The multiversion tools that only extract archives, each in its own layer. Their timestamps only depend on the
+# archives (see install-tool --reproducible), so each layer is byte-identical from one build to the next (and is
+# thus reused instead of shipped again) until that tool's versions change. Nothing else may go into these steps.
+#
+RUN --mount=type=bind,source=tools,target=/src/tools \
+    install-tool --reproducible --target /tools /src/tools/mvn
+RUN --mount=type=bind,source=tools,target=/src/tools \
+    install-tool --reproducible --target /tools /src/tools/go
+RUN --mount=type=bind,source=tools,target=/src/tools \
+    install-tool --reproducible --target /tools /src/tools/node
 
 #
 # Now do the configurations for the actual user
 #
 USER "${APP_USER}"
 
-#
-# Configure Git for the build user
-#
-RUN /usr/bin/git config --global credential.helper cache && \
-    /usr/bin/git config --global --add safe.directory '*'
 #
 # Final parameters
 #

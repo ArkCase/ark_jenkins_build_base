@@ -8,7 +8,13 @@ ARTIFACT="${2}"
 # Download and install the base artifact
 #
 mkdir -p "${VERSION}"
-curl -fsSL "${ARTIFACT}" | tar --strip-components=1 -C "${VERSION}" -xzvf -
+curl -fsSL "${ARTIFACT}" | tar --strip-components=1 --no-same-owner -C "${VERSION}" -xzvf -
+
+#
+# Remove the toolchain's own regression tests and API compatibility listings:
+# building, testing and vetting Go code doesn't use them
+#
+rm -rf "${VERSION}/test" "${VERSION}/api"
 
 #
 # Create the links for the remaining versions
