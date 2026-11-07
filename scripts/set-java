@@ -9,7 +9,7 @@ list_options()
 	local A B C
 	update-java-alternatives --list </dev/null 2>/dev/null | \
 		awk '{ print $1 }' | \
-		egrep "java-((0|[1-9][0-9]*)[.])?${VER}([.][0-9]+])?" | \
+		grep -E "java-((0|[1-9][0-9]*)[.])?${VER}([.][0-9]+)?" | \
 		sort
 }
 
@@ -62,8 +62,8 @@ if [ "${VER,,}" == "auto" ] ; then
 	quit "Re-set the java alternative to automatic mode"
 fi
 
-OUT="$(get_option "${VER}")" || fail "${OUT}"
-RESULT="$(update-java-alternatives --set "${OUT}" 2>&1)" || fail "Failed to configure the Java alternative to [${OUT}]  (number ${NUM}) (rc=${?}):\n${RESULT}"
+ALTERNATIVE="$(get_option "${VER}")" || fail "${ALTERNATIVE}"
+RESULT="$(update-java-alternatives --set "${ALTERNATIVE}" 2>&1)" || fail "Failed to configure the Java alternative to [${ALTERNATIVE}] (version ${VER}) (rc=${?}):\n${RESULT}"
 
 JAVA="$(type -P java 2>/dev/null)" || fail "Java is not in the PATH!!"
 JAVA="$(readlink -f "${JAVA}" 2>&1)" || fail "Failed to resolve the real location of the Java executable (rc=${?}): ${JAVA}"
@@ -76,11 +76,12 @@ JVM="$(readlink -f "${JVM}" 2>&1)" || fail "Failed to resolve the real location 
 JVM_BASE="/usr/lib/jvm"
 for SYM in java jre ; do
 	SYM="${JVM_BASE}/${SYM}"
-	if [ -e "${SYM}" ] ; then
+	# Only symbolic links (even dangling ones) may be replaced
+	if [ -e "${SYM}" ] || [ -h "${SYM}" ] ; then
 		[ -h "${SYM}" ] || fail "The Java symbolic target [${SYM}] is not a symbolic link"
 		OUT="$(rm -f "${SYM}" 2>&1)" || fail "Failed to clear the existing symbolic link at [${SYM}] (rc=${?}): ${OUT}"
 	fi
 	OUT="$(ln -sv "${JVM}" "${SYM}" 2>&1)" || fail "Failed to create the new symbolic link [${SYM}] -> [${JVM}] (rc=${?}): ${OUT}"
 done
 
-ok "Set Java to [${OUT}]"
+ok "Set Java to [${ALTERNATIVE}]"

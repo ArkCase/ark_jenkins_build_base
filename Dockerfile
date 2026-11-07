@@ -29,7 +29,7 @@ FROM "${BASE_IMG}"
 #
 ARG ARCH="amd64"
 ARG OS="linux"
-ARG VER="1.12.0"
+ARG VER="1.12.1"
 ARG PKG="jenkins-build-base"
 ARG APP_USER="jenkins"
 ARG APP_UID="1000"
@@ -39,7 +39,7 @@ ARG APP_GID="${APP_UID}"
 ARG DOCKER_KEYRING="https://download.docker.com/linux/ubuntu/gpg"
 ARG DOCKER_PACKAGE_REPO="https://download.docker.com/linux/ubuntu"
 
-ARG K8S_VER="1.33"
+ARG K8S_VER="1.35"
 ARG K8S_KEYRING="https://pkgs.k8s.io/core:/stable:/v${K8S_VER}/deb/Release.key"
 ARG K8S_PACKAGE_REPO="https://pkgs.k8s.io/core:/stable:/v${K8S_VER}/deb/"
 

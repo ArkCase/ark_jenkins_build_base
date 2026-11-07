@@ -42,7 +42,7 @@ case "${DEBUG,,}" in
 	* ) DEBUG="false" ;;
 esac
 
-"${DEBUG}" && set -x
+as_boolean "${DEBUG}" && set -x
 
 doing "Installing ${#} tools..."
 FAILED=()
