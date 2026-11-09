@@ -36,28 +36,30 @@ ARG APP_UID="1000"
 ARG APP_GROUP="${APP_USER}"
 ARG APP_GID="${APP_UID}"
 
-ARG DOCKER_KEYRING="https://download.docker.com/linux/ubuntu/gpg"
-ARG DOCKER_PACKAGE_REPO="https://download.docker.com/linux/ubuntu"
+ARG DOCKER_KEYRING="https://download.docker.com/${OS}/ubuntu/gpg"
+ARG DOCKER_PACKAGE_REPO="https://download.docker.com/${OS}/ubuntu"
 
 ARG K8S_VER="1.35"
 ARG K8S_KEYRING="https://pkgs.k8s.io/core:/stable:/v${K8S_VER}/deb/Release.key"
 ARG K8S_PACKAGE_REPO="https://pkgs.k8s.io/core:/stable:/v${K8S_VER}/deb/"
 
 ARG HELM_VER="3.18.5"
-ARG HELM_SRC="https://get.helm.sh/helm-v${HELM_VER}-linux-amd64.tar.gz"
+ARG HELM_SRC="https://get.helm.sh/helm-v${HELM_VER}-${OS}-${ARCH}.tar.gz"
 
 ARG GITHUB_KEYRING="https://cli.github.com/packages/githubcli-archive-keyring.gpg"
 ARG GITHUB_REPO="https://cli.github.com/packages"
 
-ARG GITLAB_REPO="https://raw.githubusercontent.com/upciti/wakemeops/main/assets/install_repository"
+ARG GLAB_VER="1.128.0"
+ARG GLAB_DEB="glab_${GLAB_VER}_${OS}_${ARCH}.deb"
+ARG GLAB_SRC="https://gitlab.com/gitlab-org/cli/-/releases/v${GLAB_VER}/downloads"
 
 ARG YARN_KEYRING="https://dl.yarnpkg.com/debian/pubkey.gpg"
 ARG YARN_REPO="https://dl.yarnpkg.com/debian/"
 
-ARG AWS_SRC="https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"
+ARG AWS_SRC="https://awscli.amazonaws.com/awscli-exe-${OS}-x86_64.zip"
 
 ARG GIT_LFS_VER="3.7.0"
-ARG GIT_LFS_SRC="https://github.com/git-lfs/git-lfs/releases/download/v${GIT_LFS_VER}/git-lfs-linux-amd64-v${GIT_LFS_VER}.tar.gz"
+ARG GIT_LFS_SRC="https://github.com/git-lfs/git-lfs/releases/download/v${GIT_LFS_VER}/git-lfs-${OS}-${ARCH}-v${GIT_LFS_VER}.tar.gz"
 
 ARG VCODE_VER="25.8.16.1"
 ARG VCODE_SRC="com.veracode.vosp.api.wrappers:vosp-api-wrappers-java:${VCODE_VER}:zip:dist"
@@ -111,7 +113,6 @@ RUN --mount=type=bind,target=/src \
     echo "deb [arch=$(dpkg --print-architecture)] ${GITHUB_REPO} stable main" > /etc/apt/sources.list.d/github-cli.list && \
     curl -fsSL "${YARN_KEYRING}" | apt-key add - && \
     echo "deb ${YARN_REPO} stable main" > /etc/apt/sources.list.d/yarn.list && \
-    curl -fsSL "${GITLAB_REPO}" | bash && \
     ( rm -f "${TRUSTED_GPG_DIR}/docker.gpg" &>/dev/null || true ) && \
     curl -fsSL "${DOCKER_KEYRING}" | gpg --dearmor -o "${TRUSTED_GPG_DIR}/docker.gpg" && \
     chmod a+r "${TRUSTED_GPG_DIR}/docker.gpg" && \
@@ -147,7 +148,6 @@ RUN --mount=type=bind,target=/src \
         gh \
         git \
         git-flow \
-        glab \
         gnupg \
         imagemagick \
         jq \
@@ -207,9 +207,13 @@ RUN --mount=type=bind,target=/src \
         zip \
         zlib1g-dev \
       && \
+    curl -fsSL -o "/tmp/${GLAB_DEB}" "${GLAB_SRC}/${GLAB_DEB}" && \
+    curl -fsSL "${GLAB_SRC}/checksums.txt" | grep " ${GLAB_DEB}\$" | ( cd /tmp && sha256sum -c - ) && \
+    apt-get -y install "/tmp/${GLAB_DEB}" && \
+    rm -f "/tmp/${GLAB_DEB}" && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
-    curl -fsSL "${HELM_SRC}" | tar -C /usr/local/bin --strip-components=1 --no-same-owner -xzvf - linux-amd64/helm && \
+    curl -fsSL "${HELM_SRC}" | tar -C /usr/local/bin --strip-components=1 --no-same-owner -xzvf - "${OS}-${ARCH}/helm" && \
     chown root:root /usr/local/bin/helm && \
     chmod 0755 /usr/local/bin/helm && \
     kubectl completion bash > /usr/share/bash-completion/completions/kubectl && \
